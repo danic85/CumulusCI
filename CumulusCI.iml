@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module version="4">
+  <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_1_9" inherit-compiler-output="false">
+    <content url="file://$MODULE_DIR$/build">
+      <sourceFolder url="file://$MODULE_DIR$/build" isTestSource="false" />
+    </content>
+    <content url="file://$MODULE_DIR$/ci">
+      <sourceFolder url="file://$MODULE_DIR$/ci" isTestSource="false" />
+    </content>
+    <content url="file://$MODULE_DIR$/cli">
+      <sourceFolder url="file://$MODULE_DIR$/cli" isTestSource="false" />
+    </content>
+    <content url="file://$MODULE_DIR$/template">
+      <sourceFolder url="file://$MODULE_DIR$/template" isTestSource="false" />
+    </content>
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+</module>
