@@ -228,7 +228,7 @@ if [ $BUILD_TYPE == "master" ]; then
 		export SF_PASSWORD=$SF_PASSWORD_PACKAGING
 		export SF_SERVERURL=$SF_SERVERURL_PACKAGING
 		echo "Got org credentials for packaging org from env"
-    
+
 		# Deploy to packaging org
 		echo
 		echo "-----------------------------------------------------------------"
@@ -400,13 +400,6 @@ if [ $BUILD_TYPE == "master" ]; then
         echo "-----------------------------------------------------------------"
         echo
         python $CUMULUSCI_PATH/ci/github_commands/merge_master_to_feature.py
-    else
-        echo
-        echo "-----------------------------------------------------------------"
-        echo "Skipping GitHub Releaseand master to feature merge because the"
-        echo "environment variable GITHUB_USERNAME is not configured."
-        echo "-----------------------------------------------------------------"
-        echo
     fi
 
     # If environment variables are configured for mrbelvedere, publish the beta
