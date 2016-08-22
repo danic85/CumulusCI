@@ -160,7 +160,15 @@ if [ $BUILD_TYPE == "master" ]; then
         #cd /home/rof/ 
         #cp -a clone clone2
         #cd clone2
+
+        #TODO: bind org to build
+        # pseudo code:
+        # if org is available
+        # bind the org
+        # else
+        # wait until org is available
         runAntTarget deployCI
+        #TODO: unbind org to build
         if [[ $? != 0 ]]; then exit 1; fi
 		
 		if [ "$SF_USERNAME_TEST" != "" ]; then
@@ -378,8 +386,44 @@ if [ $BUILD_TYPE == "master" ]; then
         echo "-----------------------------------------------------------------"
         echo "No packaging org credentials, skipping packaging org deployment "
         echo "-----------------------------------------------------------------"
-        echo		
-	fi
+        echo
+        pip install --upgrade PyGithub==1.25.1
+        export CURRENT_REL_TAG=`grep CURRENT_REL_TAG release.properties | sed -e 's/CURRENT_REL_TAG=//g'`
+        echo "Generating release notes for tag $CURRENT_REL_TAG"
+        python $CUMULUSCI_PATH/ci/github_commands/release_notes.py
+    
+    
+        # Merge master commit to all open feature branches
+        echo
+        echo "-----------------------------------------------------------------"
+        echo "Merge commit to all open feature branches"
+        echo "-----------------------------------------------------------------"
+        echo
+        python $CUMULUSCI_PATH/ci/github_commands/merge_master_to_feature.py
+    else
+        echo
+        echo "-----------------------------------------------------------------"
+        echo "Skipping GitHub Releaseand master to feature merge because the"
+        echo "environment variable GITHUB_USERNAME is not configured."
+        echo "-----------------------------------------------------------------"
+        echo
+    fi
+
+    # If environment variables are configured for mrbelvedere, publish the beta
+    if [ "$MRBELVEDERE_BASE_URL" != "" ]; then
+        echo
+        echo "-----------------------------------------------------------------"
+        echo "Publishing $PACKAGE_VERSION to mrbelvedere installer"
+        echo "-----------------------------------------------------------------"
+        echo
+        export NAMESPACE=`grep 'cumulusci.package.namespace *=' cumulusci.properties | sed -e 's/cumulusci\.package\.namespace *= *//g'`
+        export PROPERTIES_PATH='version.properties'
+        export BETA='true'
+        echo "Checking out $CURRENT_REL_TAG"
+        git fetch --tags origin
+        git checkout $CURRENT_REL_TAG
+        python $CUMULUSCI_PATH/ci/mrbelvedere_update_dependencies.py
+    fi
 
 # Feature branch commit, build and test in local unmanaged package
 elif [ $BUILD_TYPE == "feature" ]; then
