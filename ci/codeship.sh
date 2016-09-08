@@ -147,7 +147,7 @@ if [ $BUILD_TYPE == "master" ]; then
         # Get org credentials from env
         export SF_USERNAME=$SF_USERNAME_MASTER
         export SF_PASSWORD=$SF_PASSWORD_MASTER
-        export SF_SERVERURL=$SF_SERVERURL_MASTER		
+        export SF_SERVERURL=$SF_SERVERURL_MASTER
         echo "Got org credentials for master org from env"
         
         # Deploy to master org
@@ -170,20 +170,20 @@ if [ $BUILD_TYPE == "master" ]; then
         runAntTarget deployCI
         #TODO: unbind org to build
         if [[ $? != 0 ]]; then exit 1; fi
-		
+
 		if [ "$SF_USERNAME_TEST" != "" ]; then
 			echo "-----------------------------------------------------------------"
 			echo "ant deployCI - Deploy to test org"
 			echo "-----------------------------------------------------------------"
-							
+
 			export SF_USERNAME=$SF_USERNAME_TEST
 			export SF_PASSWORD=$SF_PASSWORD_TEST
-			export SF_SERVERURL=$SF_SERVERURL_TEST		
-			echo "Got org credentials for test org from env"        
+			export SF_SERVERURL=$SF_SERVERURL_TEST
+			echo "Got org credentials for test org from env"
 			runAntTarget deployWithoutTest
 			if [[ $? != 0 ]]; then exit 1; fi
 		fi
-		
+
 		# Merge master commit to all open feature branches
 		echo
 		echo "-----------------------------------------------------------------"
@@ -193,9 +193,9 @@ if [ $BUILD_TYPE == "master" ]; then
 		echo "Installing python dependencies"
 		export PACKAGE=`grep 'cumulusci.package.name.managed=' cumulusci.properties | sed -e 's/cumulusci.package.name.managed *= *//g'`
 		export BUILD_COMMIT="$CI_COMMIT_ID"
-		
+
 		python $CUMULUSCI_PATH/ci/github/merge_master_to_feature.py
-		
+
     else
         echo
         echo "-----------------------------------------------------------------"
@@ -220,7 +220,7 @@ if [ $BUILD_TYPE == "master" ]; then
         export APEX_TEST_NAME_EXCLUDE=$APEX_TEST_NAME_EXCLUDE_CUMULUSCI
     fi
 
-	
+
 	if [ "$SF_USERNAME_PACKAGING" != "" ]; then
 
 		# Get org credentials from env
@@ -241,7 +241,7 @@ if [ $BUILD_TYPE == "master" ]; then
 		runAntTarget deployCIPackageOrg
 		if [[ $? != 0 ]]; then exit 1; fi
 
-		
+
 		#echo
 		#echo "-----------------------------------------------------------------"
 		#echo "Waiting on background jobs to complete"
@@ -249,7 +249,7 @@ if [ $BUILD_TYPE == "master" ]; then
 		#echo
 		#waitOnBackgroundJobs
 		#if [ $? != 0 ]; then exit 1; fi
-		
+
 		# Upload beta package
 		echo
 		echo "-----------------------------------------------------------------"
@@ -270,13 +270,13 @@ if [ $BUILD_TYPE == "master" ]; then
 		pip install --upgrade selenium
 		pip install --upgrade requests
 
-		echo 
+		echo
 		echo
 		echo "Running package_upload.py"
 		echo
 		python $CUMULUSCI_PATH/ci/package_upload.py
 		if [[ $? -ne 0 ]]; then exit 1; fi
-	 
+
 		# Test beta
 		echo
 		echo "-----------------------------------------------------------------"
@@ -321,50 +321,50 @@ if [ $BUILD_TYPE == "master" ]; then
 		done
 		if [[ $? -ne 0 ]]; then exit 1; fi
 
-		echo
-		echo "-----------------------------------------------------------------"
-		echo "ant runAllTests: Testing $PACKAGE_VERSION in beta org"
-		echo "-----------------------------------------------------------------"
-		echo
-		runAntTarget runAllTestsManaged
-		if [[ $? -ne 0 ]]; then exit 1; fi
-		
-		if [ "$GITHUB_USERNAME" != "" ]; then   
-			# Create GitHub Release
-			echo
-			echo "-----------------------------------------------------------------"
-			echo "Creating GitHub Release $PACKAGE_VERSION"
-			echo "-----------------------------------------------------------------"
-			echo
-			python $CUMULUSCI_PATH/ci/github/create_release.py
+    echo
+    echo "-----------------------------------------------------------------"
+    echo "ant runAllTests: Testing $PACKAGE_VERSION in beta org"
+    echo "-----------------------------------------------------------------"
+    echo
+    runAntTarget runAllTestsManaged
+    if [[ $? -ne 0 ]]; then exit 1; fi
 
-			# Add release notes
-			echo
-			echo "-----------------------------------------------------------------"
-			echo "Generating Release Notes for $PACKAGE_VERSION"
-			echo "-----------------------------------------------------------------"
-			echo
-			pip install --upgrade PyGithub==1.25.1
-			export CURRENT_REL_TAG=`grep CURRENT_REL_TAG release.properties | sed -e 's/CURRENT_REL_TAG=//g'`
-			echo "Generating release notes for tag $CURRENT_REL_TAG"
-			python $CUMULUSCI_PATH/ci/github/release_notes.py
-		
-		
-			# Merge master commit to all open feature branches
-			echo
-			echo "-----------------------------------------------------------------"
-			echo "Merge commit to all open feature branches"
-			echo "-----------------------------------------------------------------"
-			echo
-			python $CUMULUSCI_PATH/ci/github/merge_master_to_feature.py
-		else
-			echo
-			echo "-----------------------------------------------------------------"
-			echo "Skipping GitHub Releaseand master to feature merge because the"
-			echo "environment variable GITHUB_USERNAME is not configured."
-			echo "-----------------------------------------------------------------"
-			echo
-		fi
+    if [ "$GITHUB_USERNAME" != "" ]; then
+        # Create GitHub Release
+        echo
+        echo "-----------------------------------------------------------------"
+        echo "Creating GitHub Release $PACKAGE_VERSION"
+        echo "-----------------------------------------------------------------"
+        echo
+        python $CUMULUSCI_PATH/ci/github_commands/create_release.py
+
+        # Add release notes
+        echo
+        echo "-----------------------------------------------------------------"
+        echo "Generating Release Notes for $PACKAGE_VERSION"
+        echo "-----------------------------------------------------------------"
+        echo
+        pip install --upgrade PyGithub==1.25.1
+        export CURRENT_REL_TAG=`grep CURRENT_REL_TAG release.properties | sed -e 's/CURRENT_REL_TAG=//g'`
+        echo "Generating release notes for tag $CURRENT_REL_TAG"
+        python $CUMULUSCI_PATH/ci/github_commands/release_notes.py
+
+
+        # Merge master commit to all open feature branches
+        echo
+        echo "-----------------------------------------------------------------"
+        echo "Merge commit to all open feature branches"
+        echo "-----------------------------------------------------------------"
+        echo
+        python $CUMULUSCI_PATH/ci/github_commands/merge_master_to_feature.py
+    else
+        echo
+        echo "-----------------------------------------------------------------"
+        echo "Skipping GitHub Releaseand master to feature merge because the"
+        echo "environment variable GITHUB_USERNAME is not configured."
+        echo "-----------------------------------------------------------------"
+        echo
+    fi
 
 		# If environment variables are configured for mrbelvedere, publish the beta
 		if [ "$MRBELVEDERE_BASE_URL" != "" ]; then
@@ -391,8 +391,8 @@ if [ $BUILD_TYPE == "master" ]; then
         export CURRENT_REL_TAG=`grep CURRENT_REL_TAG release.properties | sed -e 's/CURRENT_REL_TAG=//g'`
         echo "Generating release notes for tag $CURRENT_REL_TAG"
         python $CUMULUSCI_PATH/ci/github_commands/release_notes.py
-    
-    
+
+
         # Merge master commit to all open feature branches
         echo
         echo "-----------------------------------------------------------------"
