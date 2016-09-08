@@ -1,4 +1,5 @@
 import time
+import click
 from abc import abstractmethod, ABCMeta
 
 import github
@@ -236,13 +237,14 @@ class BindBuildToOrgCommand(OrgManagementCommand):
         assert value < (10*60-1), 'sleeping time needs to be smaller than 10 mins'
         self.__sleeping_time = value
 
-    def __init__(self, orgname, build_id,  storage_config, storage_type='GITFILE'):
+    def __init__(self, orgname, build_id,  storage_config, storage_type='GITFILE', click=None):
         super(BindBuildToOrgCommand, self).__init__(orgname, storage_config, storage_type)
         self.__build_id = build_id
         self.__sandbox = False
         self.__wait = True
         self.__retry_attempts = 90
         self.__sleeping_time = 60
+        self.__click = click
 
     def execute(self):
         binding = self.storage.get_binding(self.orgname) # returns the build id bound to the org
@@ -254,7 +256,7 @@ class BindBuildToOrgCommand(OrgManagementCommand):
             if self.retry_attempts > 0:
                 time.sleep(self.sleeping_time)
                 self.__retry_attempts = self.__retry_attempts - 1
-                print 'Retrying. Attempt ' + str(self.__retry_attempts)
+                self.__click.echo('Retrying. Attempt ' + str(self.__retry_attempts))
                 self.execute()
             else:
                 raise OrgBoundException('Org ' + self.orgname + ' bound to build ' + binding + ' not released in time '
