@@ -254,7 +254,7 @@ class BindBuildToOrgCommand(OrgManagementCommand):
             if self.retry_attempts > 0:
                 time.sleep(self.sleeping_time)
                 self.__retry_attempts = self.__retry_attempts - 1
-                print 'Retrying. Attempt ' + self.__retry_attempts
+                print 'Retrying. Attempt ' + str(self.__retry_attempts)
                 self.execute()
             else:
                 raise OrgBoundException('Org ' + self.orgname + ' bound to build ' + binding + ' not released in time '
