@@ -248,17 +248,18 @@ class BindBuildToOrgCommand(OrgManagementCommand):
 
     def execute(self):
         self.__click.echo('Attempting Bind')
-        print('Attempting to Bind')
         binding = self.storage.get_binding(self.orgname) # returns the build id bound to the org
         if binding is None: # the org is not bound yet
             self.storage.bind_build_to_org(self.orgname, self.build_id)
+            self.__click.echo('Succeeded')
         elif binding == self.build_id: # accidentally tried to rebind the org to the build
+            self.__click.echo('Bind already in place')
             pass
         elif self.wait: # we need to wait or fail
             if self.retry_attempts > 0:
+                self.__click.echo("Queued. Bind attempts remaining: %s", self.__retry_attempts);
                 time.sleep(self.sleeping_time)
                 self.__retry_attempts = self.__retry_attempts - 1
-                self.__click.echo('Retrying. Attempts remaining: ' + str(self.__retry_attempts))
                 self.execute()
             else:
                 raise OrgBoundException('Org ' + self.orgname + ' bound to build ' + binding + ' not released in time '
