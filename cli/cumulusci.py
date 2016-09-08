@@ -4,7 +4,13 @@ import os
 import pprint
 import sarge
 import sys
+
 from time import sleep
+
+from release_notes.generator import GithubReleaseNotesGenerator
+from release_notes.generator import PublishingGithubReleaseNotesGenerator
+
+from orgmanagement.bind_org import bind_org, release_org
 
 # Exceptions
 class AntTargetException(Exception):
@@ -113,6 +119,8 @@ class Config(object):
         self.apextestsdb_user_id = self.get_env_var('APEXTESTSDB_USER_ID')
         self.apextestsdb_token = self.get_env_var('APEXTESTSDB_TOKEN')
 
+        # bound org config TODO make this work for org pools
+        self.bound_org = self.get_env_var('BOUND_ORG_NAME')
 
         # Calculated values
         self.build_type = self.get_build_type()
@@ -194,6 +202,10 @@ def get_build_info():
         info['commit'] = os.environ.get('TDDIUM_CURRENT_COMMIT')
         info['build_vendor'] = 'SolanoCI'
     # Codeship
+    elif os.environ.get('CI_NAME'):
+        info['branch'] = os.environ.get('CI_BRANCH')
+        info['commit'] = os.environ.get('CI_COMMIT_ID')
+        info['build_vendor'] = 'CodeShip'
     # Jenkins
     # CicleCI
     elif os.environ.get('CIRCLECI'):
@@ -272,6 +284,75 @@ def ci_deploy(config, debug_logdir, verbose):
         if verbose:
             args.append('--verbose')
         deploy_packaging.main(args=args, standalone_mode=False, obj=config)
+
+
+# command ci bind_org
+@click.command(name='bind_org', help="""binds an org to a 'build transaction' using the org credentials as identifier for the org.
+
+        You need an org to build and test a feature branch. The total build process consists of multiple steps and
+        multiple force.com migration tool calls against the org some of them changing the state of the org. If
+        another build would start using that org during his build process, both builds would fail since the org
+        status would become indeterminate. If you 'bind the org' to your build at the start of your build process,
+        that would stop the other build to use 'your' org. You have to release the org though after you have used it.
+
+        This only is needed when you do not have exclusive access to the org. So only on CI systems in general.
+
+        The binding of an org needs to be stored in a 'single point of truth'. Github is used for that and it's
+        done by storing a lightweight tag with the orgname attribute on the current commit.""")
+@click.option('--orgname', default=None, help="the name by which the salesforce org is known within all build "
+                                                "processes. If not set use the urlencoded username passed through "
+                                                "the config (coming from the environment). If that's not set use the "
+                                                "clientid of the oauth config. Fails ultimately if no orgname can be "
+                                                "found.")
+@click.option('--sandbox/--production', default=False, help="If sandbox this is a test org. If production(default) "
+                                                              "a search is conducted for a production org. "
+                                                              "Used together with the username to make a unique orgname")
+@click.option('--orgpool_name', default=None, type=str, help="reserved for future use.")
+@click.option('--wait/--fail-immediately', default=True, help="If wait, the build will wait until an org becomes "
+                                                              "available. If fail-immediately, the build fails "
+                                                              "immediately.")
+@click.option('--retry_attempts', default=10, type=int, help="the number of retry attempts that will be executed if "
+                                                                                                                          "fail = "
+                                                                                                                  "False. Defaults to 10")
+@click.option('--sleeping_time', default=360, type=int, help="the waiting period between retry attempts in seconds. Defaults to 360 (5 minutes)")
+@pass_config
+def ci_bind_org(config, orgname, sandbox, orgpool_name,
+                wait, retry_attempts, sleeping_time):
+    orgname = get_arg(orgname, config.sf_username) #TODO make this work for org pools
+
+    github_storage_config = get_env_github(config)
+    github_storage_config['SHA'] = config.commit
+
+    bind_org(orgname, github_storage_config, sandbox=sandbox, wait=wait, retry_attempts=retry_attempts,
+             sleeping_time=sleeping_time)
+
+
+#command ci release_org
+@click.command(name='release_org', help="releases a given org. After release, the org can be used by other build "
+                                        "processes. See for a longer help on binding and releasing orgs bind_org.")
+@click.option('--orgname', default=None, help="the orgname to be released. See bind_org for a further description")
+@click.option('--sandbox/--production', default=False, help="If sandbox this is a test org. If production(default) "
+                                                            "a search is conducted for a production org. "
+                                                            "Used together with the username to make a unique orgname")
+@pass_config
+def ci_release_org(config, orgname, sandbox):
+    orgname = get_arg(orgname, config.sf_username)
+
+    github_storage_config = get_env_github(config)
+
+    release_org(orgname, github_storage_config, orgname, sandbox)
+
+
+def get_arg(arg, config_arg):
+    if not arg:
+        if config_arg:
+            return config_arg
+        else:
+            raise click.BadParameter
+    else:
+        assert isinstance(arg, str), "Argument " + str(arg) + " must be a string"
+        return arg
+
 
 # command: ci next_step
 @click.command(help='A command to calculate and return the next steps for a ci build to run')
@@ -830,7 +911,7 @@ def github_commit_status(config, state, context, url, description, commit):
         'BUILD_COMMIT',
     ]
 
-    p = run_python_script('github/set_commit_status.py', env, config, required_env=required_env)
+    p = run_python_script('github_commands/set_commit_status.py', env, config, required_env=required_env)
 
 # command: github release
 @click.command(name='release', help='Create a release in Github')
@@ -861,40 +942,34 @@ def github_release(config, version, commit):
         'PREFIX_BETA',
     ]
 
-    p = run_python_script('github/create_release.py', env, config, required_env=required_env)
+    p = run_python_script('github_commands/create_release.py', env, config, required_env=required_env)
 
 # command: github release_notes
-@click.command(name='release_notes', help='Generates release notes by parsing Warning, Info, and Issues headings from pull request bodies of all pull requests merged since the last production release tag')
+@click.command(name='release_notes', help='Generates release notes by parsing sections from pull request bodies of all pull requests merged since the last production release tag.')
 @click.argument('tag')
-@click.option('--last-tag', help="Instead of looking for the last tag, you can manually provide it.  This is useful if you skip a release and want to build release notes going back 2 releases")
-@click.option('--update-release', is_flag=True, help="If set, add the release notes to the body")
+@click.option('--last-tag', help='Instead of looking for the last tag, you can manually provide it.  This is useful if you skip a release and want to build release notes going back 2 releases.')
+@click.option('--publish', is_flag=True, help='Creates or updates a release in GitHub with new release notes. Also adds comments to closed issues noting the fixed version.')
 @pass_config
-def github_release_notes(config, tag, last_tag, update_release):
+def github_release_notes(config, tag, last_tag, publish):
 
-    # Build the environment for the command
-    env = get_env_cumulusci(config)
-    env.update(get_env_github(config))
+    github_info = {
+        'github_owner': config.github_org_name,
+        'github_repo': config.github_repo_name,
+        'github_username': config.github_username,
+        'github_password': config.github_password,
+        'master_branch': config.master_branch,
+        'prefix_prod': config.prefix_release,
+        'prefix_beta': config.prefix_beta,
+    }
 
-    env['CURRENT_REL_TAG'] = tag
-    if last_tag:
-        env['LAST_REL_TAG'] = last_tag
-    env['MASTER_BRANCH'] = config.master_branch
-    env['PREFIX_BETA'] = config.prefix_beta
-    env['PREFIX_RELEASE'] = config.prefix_release
-    env['PRINT_ONLY'] = str(not update_release)
+    if publish:
+        release_notes = PublishingGithubReleaseNotesGenerator(
+            github_info, tag, last_tag)
+    else:
+        release_notes = GithubReleaseNotesGenerator(
+            github_info, tag, last_tag)
 
-    required_env = [
-        'GITHUB_ORG_NAME',
-        'GITHUB_REPO_NAME',
-        'GITHUB_USERNAME',
-        'GITHUB_PASSWORD',
-        'CURRENT_REL_TAG',
-        'MASTER_BRANCH',
-        'PREFIX_BETA',
-        'PREFIX_RELEASE',
-    ]
-
-    p = run_python_script('github/release_notes.py', env, config, required_env=required_env)
+    print release_notes()
 
 # command: github master_to_feature
 @click.command(name='master_to_feature', help='Attempts to merge a commit on the master branch to all open feature branches.  Creates pull requests assigned to the developer of the feature branch if a merge conflict occurs.')
@@ -918,7 +993,7 @@ def github_master_to_feature(config, commit):
         'MASTER_BRANCH',
     ]
 
-    p = run_python_script('github/merge_master_to_feature.py', env, config, required_env=required_env)
+    p = run_python_script('github_commands/merge_master_to_feature.py', env, config, required_env=required_env)
 
 # command: github clone_tag
 @click.command(name='clone_tag', help='Create one tag referencing the same commit as another tag')
@@ -943,7 +1018,7 @@ def github_clone_tag(config, src_tag, tag):
         'TAG',
     ]
 
-    p = run_python_script('github/tag_to_tag.py', env, config, required_env=required_env)
+    p = run_python_script('github_commands/tag_to_tag.py', env, config, required_env=required_env)
 
 # command: mrbelvedere release
 @click.command(name='release', help='Adds a new beta or production release to an existing package in mrbelvedere, sets up dependencies for the installer, and sets the version as the latest beta or production')
@@ -1063,6 +1138,8 @@ ci.add_command(ci_deploy)
 ci.add_command(next_step)
 ci.add_command(beta_deploy)
 ci.add_command(ci_apextestsdb_upload)
+ci.add_command(ci_bind_org)
+ci.add_command(ci_release_org)
 cli.add_command(ci)
 
 # Group: dev

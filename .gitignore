@@ -1,2 +1,6 @@
 *.py[cod]
 .*.swp
+venv/
+.idea/*
+*/*.egg-info/*
+/CumulusCI.iml
