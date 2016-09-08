@@ -311,10 +311,10 @@ def ci_deploy(config, debug_logdir, verbose):
 @click.option('--wait/--fail-immediately', default=True, help="If wait, the build will wait until an org becomes "
                                                               "available. If fail-immediately, the build fails "
                                                               "immediately.")
-@click.option('--retry_attempts', default=10, type=int, help="the number of retry attempts that will be executed if "
+@click.option('--retry_attempts', default=90, type=int, help="the number of retry attempts that will be executed if "
                                                                                                                           "fail = "
                                                                                                                   "False. Defaults to 10")
-@click.option('--sleeping_time', default=360, type=int, help="the waiting period between retry attempts in seconds. Defaults to 360 (5 minutes)")
+@click.option('--sleeping_time', default=60, type=int, help="the waiting period between retry attempts in seconds. Defaults to 360 (5 minutes)")
 @pass_config
 def ci_bind_org(config, orgname, orgpool_name,
                 wait, retry_attempts, sleeping_time):
