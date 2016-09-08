@@ -237,7 +237,7 @@ class BindBuildToOrgCommand(OrgManagementCommand):
         assert value < (10*60-1), 'sleeping time needs to be smaller than 10 mins'
         self.__sleeping_time = value
 
-    def __init__(self, orgname, build_id,  storage_config, storage_type='GITFILE', click=NULL):
+    def __init__(self, orgname, build_id,  storage_config, storage_type='GITFILE', click=None):
         super(BindBuildToOrgCommand, self).__init__(orgname, storage_config, storage_type)
         self.__build_id = build_id
         self.__sandbox = False
