@@ -257,7 +257,7 @@ class BindBuildToOrgCommand(OrgManagementCommand):
             pass
         elif self.wait: # we need to wait or fail
             if self.retry_attempts > 0:
-                self.__click.echo("Queued. Bind attempts remaining: %s", self.__retry_attempts);
+                self.__click.echo("Queued. Bind attempts remaining: %s", self.__retry_attempts)
                 time.sleep(self.sleeping_time)
                 self.__retry_attempts = self.__retry_attempts - 1
                 self.execute()
