@@ -291,6 +291,9 @@
 
                 <antcall target="postDeployCI" />
             </try>
+            <catch>
+                <fail message="deployCI build failed"/>
+            </catch>
             <finally>
                 <antcall target="releaseOrg" />
             </finally>
