@@ -281,7 +281,7 @@ class BindBuildToOrgCommand(OrgManagementCommand):
             if self.retry_attempts > 0:
                 time.sleep(self.sleeping_time)
                 self.__retry_attempts = self.__retry_attempts - 1
-                echo('Retrying. Attempt ' + self.__retry_attempts)
+                echo('Retrying. Attempt ' + str(self.__retry_attempts))
                 command = BindBuildToOrgCommand(self.orgname, self.build_id, self.storage_config, self.storage_type)
                 command.build_id = self.build_id
                 command.wait = self.wait
