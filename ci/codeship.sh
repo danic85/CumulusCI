@@ -352,12 +352,12 @@ if [ $BUILD_TYPE == "master" ]; then
 
 
         # Merge master commit to all open feature branches
-        echo
-        echo "-----------------------------------------------------------------"
-        echo "Merge commit to all open feature branches"
-        echo "-----------------------------------------------------------------"
-        echo
-        python $CUMULUSCI_PATH/ci/github_commands/merge_master_to_feature.py
+        # echo
+        # echo "-----------------------------------------------------------------"
+        # echo "Merge commit to all open feature branches"
+        # echo "-----------------------------------------------------------------"
+        # echo
+        # python $CUMULUSCI_PATH/ci/github_commands/merge_master_to_feature.py
     else
         echo
         echo "-----------------------------------------------------------------"
@@ -395,12 +395,12 @@ if [ $BUILD_TYPE == "master" ]; then
 
 
         # Merge master commit to all open feature branches
-        echo
-        echo "-----------------------------------------------------------------"
-        echo "Merge commit to all open feature branches"
-        echo "-----------------------------------------------------------------"
-        echo
-        python $CUMULUSCI_PATH/ci/github_commands/merge_master_to_feature.py
+        # echo
+        # echo "-----------------------------------------------------------------"
+        # echo "Merge commit to all open feature branches"
+        # echo "-----------------------------------------------------------------"
+        # echo
+        # python $CUMULUSCI_PATH/ci/github_commands/merge_master_to_feature.py
     fi
 
     # If environment variables are configured for mrbelvedere, publish the beta
